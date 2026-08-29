@@ -1,3 +1,11 @@
+# This is a fork!
+This is a fork of the OpenStreetMap Carto project (see the rest of the readme below).
+The purpose is to add some features I personally like, like elevation curves (contours) and hillshade.
+Currently the master branch is used for ski maps, and some other branches may contain other changes.
+
+License: I allow the files here to be used under the conditions in the original LICENSE.txt file.
+But if you upstream any of my changes, please attribute me (Noa Torstensvik).
+
 # OpenStreetMap Carto
 
 ![screenshot](https://raw.github.com/openstreetmap-carto/openstreetmap-carto/master/preview.png)

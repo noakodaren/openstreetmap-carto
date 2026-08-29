@@ -19,6 +19,13 @@ _parts:
     geometry_field: "way"
     srid: *srid
     extent: "-20037508,-20037508,20037508,20037508"
+  contours: &contours
+    type: "postgis"
+    dbname: "contours"
+    key_field: ""
+    geometry_field: "way"
+    #srid: *srid
+    extent: "-20037508,-20037508,20037508,20037508"
 
 scale: 1
 metatile: 2
@@ -55,6 +62,9 @@ Stylesheet:
   - style/addressing.mss
   - style/golf.mss
   - style/tourism.mss
+  - style/ski.mss
+  - style/contour.mss
+  - style/hillshade.mss
 Layer:
   - id: landcover-low-zoom
     geometry: polygon
@@ -168,6 +178,11 @@ Layer:
         ) AS icesheet_polygons
     properties:
       minzoom: 5
+  - id: hillshade
+    Datasource:
+      type: "gdal"
+      file: "hillshade/main.tif"
+      format: "tiff"
   - id: water-lines-low-zoom
     geometry: linestring
     <<: *extents
@@ -1026,6 +1041,31 @@ Layer:
     properties:
       group-by: layernotnull
       minzoom: 15
+  - id: ski-piste
+    geometry: linestring
+    <<: *extents
+    Datasource:
+      <<: *osm2pgsql
+      table: |-
+        (SELECT
+            way,
+            (tags->'piste:difficulty') as ski_difficulty
+          FROM planet_osm_line
+          WHERE tags->'piste:difficulty' IS NOT NULL
+        ) AS ski_piste
+  - id: ski-piste-text
+    geometry: linestring
+    <<: *extents
+    Datasource:
+      <<: *osm2pgsql
+      table: |-
+        (SELECT
+            way,
+            ref,
+            (tags->'piste:difficulty') as ski_difficulty
+          FROM planet_osm_line
+          WHERE tags->'piste:difficulty' IS NOT NULL AND ref IS NOT NULL
+        ) AS ski_piste_text
   - id: aerialways
     geometry: linestring
     <<: *extents
@@ -1055,6 +1095,23 @@ Layer:
         ) AS aerialways
     properties:
       minzoom: 12
+  - id: skilift-text-line
+    geometry: linestring
+    <<: *extents
+    Datasource:
+      <<: *osm2pgsql
+      table: |-
+        (SELECT
+            way,
+            'aerialway_' || aerialway AS feature,
+            name,
+            ref
+          FROM planet_osm_line
+          WHERE ( aerialway IN ('cable_car', 'gondola', 'mixed_lift', 'goods', 'chair_lift', 'drag_lift', 't-bar', 'j-bar', 'platter', 'rope_tow', 'zip_line')
+            AND name IS NOT NULL)
+        ) AS skilift_text_line
+    properties:
+      minzoom: 10
   - id: entrances
     geometry: point
     <<: *extents
@@ -2149,7 +2206,7 @@ Layer:
                  AND tags-> 'location' IN ('overground', 'overhead', 'surface', 'outdoor')
                  OR bridge IN ('yes', 'aqueduct', 'cantilever', 'covered', 'trestle', 'viaduct'))
               OR tags @> 'attraction=>water_slide'
-              OR aerialway IN ('cable_car', 'gondola', 'mixed_lift', 'goods', 'chair_lift', 'drag_lift', 't-bar', 'j-bar', 'platter', 'rope_tow', 'zip_line')
+              --OR aerialway IN ('cable_car', 'gondola', 'mixed_lift', 'goods', 'chair_lift', 'drag_lift', 't-bar', 'j-bar', 'platter', 'rope_tow', 'zip_line')
               OR leisure IN ('slipway', 'track')
               OR waterway IN ('dam', 'weir')
               OR "natural" IN ('arete', 'cliff', 'ridge')
@@ -2398,3 +2455,15 @@ Layer:
       table: *amenity_low_priority_sql
     properties:
       minzoom: 17
+  - id: contours
+    geometry: linestring
+    <<: *extents
+    Datasource:
+      <<: *contours
+      table: |-
+        (SELECT
+            way,
+            --CAST (ele AS INTEGER) AS elevation,
+            ele
+          FROM planet_osm_line
+          ) AS contours
